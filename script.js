@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function displayResults(details) {
         document.getElementById('payment-amount').textContent = formatCurrency(details.payment);
-        document.getElementById('total-payments').textContent = formatCurrency(details.totalCost);
+        document.getElementById('total-payments').textContent = formatCurrency(details.totalCost); // This should be total cost
         document.getElementById('total-interest').textContent = formatCurrency(details.totalInterest);
         document.getElementById('payoff-date').textContent = details.payoffDate;
         document.getElementById('interest-savings').textContent = formatCurrency(details.interestSavings);
@@ -103,13 +103,16 @@ document.addEventListener('DOMContentLoaded', function() {
         let totalInterestPaid = 0;
         let paymentNumber = 0;
 
-        while (balance > 0) {
+        while (balance > 0.005) { // Use a small threshold to avoid floating point issues
             paymentNumber++;
             let interestForPeriod = balance * periodicInterestRate;
             let principalPaid = totalPaymentPerPeriod - interestForPeriod;
-            
-            if (principalPaid + interestForPeriod > balance + interestForPeriod) {
+            let actualPayment = totalPaymentPerPeriod;
+
+            // **FIX:** Correctly handle the final payment
+            if (principalPaid >= balance) {
                 principalPaid = balance;
+                actualPayment = balance + interestForPeriod;
             }
             
             balance -= principalPaid;
@@ -119,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 no: paymentNumber,
                 principal: principalPaid,
                 interest: interestForPeriod,
-                payment: principalPaid + interestForPeriod,
+                payment: actualPayment,
                 balance: balance > 0 ? balance : 0
             });
 
@@ -148,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        const totalMonthsToPayoff = Math.ceil(paymentNumber / paymentsPerYear * 12);
+        const totalMonthsToPayoff = Math.round(paymentNumber / paymentsPerYear * 12);
         const originalTotalMonths = years * 12;
         const timeSavedInMonths = originalTotalMonths - totalMonthsToPayoff;
         
@@ -363,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function() {
         reportContainer.style.left = '-9999px';
         reportContainer.style.width = '1000px';
         reportContainer.style.padding = '20px';
-        reportContainer.style.background = 'white';
+        reportContainer.style.background = 'white'; // Use a solid background
         document.body.appendChild(reportContainer);
 
         try {
@@ -395,25 +398,32 @@ document.addEventListener('DOMContentLoaded', function() {
             reportContainer.appendChild(cloneAndPrepareSchedule('yearly'));
             reportContainer.appendChild(cloneAndPrepareSchedule('payment'));
 
-            const canvas = await html2canvas(reportContainer, { scale: 2, useCORS: true });
+            // **FIX:** Add backgroundColor to prevent transparent/faded rendering
+            const canvas = await html2canvas(reportContainer, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            });
             
             const { jsPDF } = window.jspdf;
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
             const imgWidth = pdfWidth;
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
             let heightLeft = imgHeight;
-            let position = 0;
+            let position = 0; // Represents the y-coordinate for the image on each page
 
+            // **FIX:** Corrected loop for proper page slicing
             pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pdf.internal.pageSize.getHeight();
+            heightLeft -= pdfHeight;
 
             while (heightLeft > 0) {
-                position = -heightLeft;
+                position -= pdfHeight; // Move the image "up" by one page height for the next slice
                 pdf.addPage();
                 pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pdf.internal.pageSize.getHeight();
+                heightLeft -= pdfHeight;
             }
             
             pdf.save('Canadian-Mortgage-Report.pdf');
