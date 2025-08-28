@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Canadian Mortgage Calculator</title>
+    
+    <!-- External Libraries (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Local Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="loading hidden" id="loading">
+        <div class="loading-spinner"></div>
+        <p style="margin-top: 20px;">Generating PDF report...</p>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="canada-flag">🇨🇦</div>
+            <h1>Advanced Canadian Mortgage Calculator</h1>
+            <p class="subtitle">With professional PDF reports and scenario comparison</p>
+        </header>
+        
+        <div class="calculator-container">
+            <div class="input-section">
+                <div class="input-group">
+                    <label for="principal">Mortgage Amount (CAD)</label>
+                    <input type="number" id="principal" placeholder="500,000" value="500000">
+                </div>
+                
+                <div class="input-group">
+                    <label for="interest">Annual Interest Rate (%)</label>
+                    <input type="number" id="interest" placeholder="5.0" value="5.0" step="0.01">
+                </div>
+                
+                <div class="input-group">
+                    <label for="amortization">Amortization Period (Years)</label>
+                    <input type="number" id="amortization" placeholder="25" value="25">
+                </div>
+                
+                <div class="input-group">
+                    <label for="frequency">Payment Frequency</label>
+                    <select id="frequency">
+                        <option value="12">Monthly</option>
+                        <option value="24">Semi-Monthly</option>
+                        <option value="26">Bi-Weekly</option>
+                        <option value="52">Weekly</option>
+                        <option value="13">Accelerated Bi-Weekly</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="extra-payment">Extra Payment (CAD)</label>
+                    <input type="number" id="extra-payment" placeholder="0" value="0" step="10">
+                </div>
+                
+                <button class="btn" id="calculate"><i class="fas fa-calculator"></i> Calculate Mortgage</button>
+                <button class="btn btn-secondary" id="save-scenario-a"><i class="fas fa-save"></i> Save as Scenario A</button>
+                <button class="btn" id="save-scenario-b"><i class="fas fa-save"></i> Save as Scenario B</button>
+                <button class="btn btn-warning" id="save-scenario-c"><i class="fas fa-save"></i> Save as Scenario C</button>
+                
+                <div class="report-options">
+                    <h3>Export Report</h3>
+                    <p style="font-size: 0.9em; color: var(--gray); margin-bottom: 10px;">Generates a visual PDF of the entire report below, including full amortization tables.</p>
+                    <button class="export-btn" id="export-pdf"><i class="fas fa-file-pdf"></i> Generate Visual PDF Report</button>
+                </div>
+            </div>
+            
+            <div class="results-section">
+                <div class="results" id="results">
+                    <h2><i class="fas fa-chart-pie"></i> Payment Breakdown</h2>
+                    <div class="result-item">
+                        <span>Payment Amount:</span>
+                        <span class="highlight" id="payment-amount">$0.00</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Total Payments:</span>
+                        <span id="total-payments">$0.00</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Total Interest:</span>
+                        <span id="total-interest">$0.00</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Payoff Date:</span>
+                        <span id="payoff-date">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Interest Savings:</span>
+                        <span class="positive" id="interest-savings">$0.00</span>
+                    </div>
+                    
+                    <div class="summary-cards">
+                        <div class="card">
+                            <h3>Total Cost</h3>
+                            <div class="value" id="total-cost">$0.00</div>
+                        </div>
+                        <div class="card">
+                            <h3>Interest to Principal Ratio</h3>
+                            <div class="value" id="ratio">0:0</div>
+                        </div>
+                        <div class="card">
+                            <h3>Time Saved</h3>
+                            <div class="value positive" id="time-saved">0 months</div>
+                        </div>
+                    </div>
+                    
+                    <div class="additional-features">
+                        <h3><i class="fas fa-lightbulb"></i> Tips to Pay Off Faster</h3>
+                        <p>Consider making accelerated bi-weekly payments or adding a small extra payment to reduce your amortization period significantly.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="scenario-section" id="scenario-section">
+        <h2 class="chart-title"><i class="fas fa-chart-line"></i> Scenario Comparison</h2>
+        
+        <div class="scenario-comparison">
+            <div class="scenario scenario-a">
+                <div class="scenario-title">
+                    <div class="scenario-color"></div>
+                    <h3>Scenario A</h3>
+                </div>
+                <div class="scenario-results" id="scenario-a-results"></div>
+            </div>
+            
+            <div class="scenario scenario-b">
+                <div class="scenario-title">
+                    <div class="scenario-color"></div>
+                    <h3>Scenario B</h3>
+                </div>
+                <div class="scenario-results" id="scenario-b-results"></div>
+            </div>
+            
+            <div class="scenario scenario-c">
+                <div class="scenario-title">
+                    <div class="scenario-color"></div>
+                    <h3>Scenario C</h3>
+                </div>
+                <div class="scenario-results" id="scenario-c-results"></div>
+            </div>
+        </div>
+        
+        <div class="chart-container visible">
+            <h2 class="chart-title"><i class="fas fa-chart-bar"></i> Scenario Comparison Chart</h2>
+            <canvas id="scenario-chart"></canvas>
+        </div>
+    </div>
+    
+    <div class="chart-container" id="chart-container">
+        <h2 class="chart-title"><i class="fas fa-chart-line"></i> Yearly Amortization Overview</h2>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="balance">Balance Over Time</div>
+            <div class="tab" data-tab="payments">Payments by Year</div>
+            <div class="tab" data-tab="interest">Interest vs Principal</div>
+        </div>
+        
+        <canvas id="amortization-chart"></canvas>
+    </div>
+    
+    <div class="schedule" id="schedule">
+        <h2><i class="fas fa-table"></i> Amortization Schedule</h2>
+
+        <div class="tabs" style="margin-bottom:15px">
+            <div class="tab active" data-view="yearly">Yearly</div>
+            <div class="tab" data-view="payment">Per Payment</div>
+        </div>
+
+        <button class="btn btn-secondary" id="toggle-full-schedule">
+            <i class="fas fa-eye"></i> Show Full Schedule
+        </button>
+
+        <div class="schedule-container">
+            <table id="amortization-table">
+                <thead id="schedule-head"></thead>
+                <tbody id="schedule-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        <p>This calculator uses Canadian mortgage calculations with semi-annual compounding. Results are estimates only.</p>
+    </footer>
+
+    <!-- Local Script -->
+    <script src="script.js" defer></script>
+</body>
+</html>
